@@ -35,11 +35,10 @@ def collapse_factors(Colleg_c):
 def OneHot(JobPl, Colleg_c):
     cat_list_job=list(JobPl.select_dtypes('category'))
     Jobs_encoded = pd.get_dummies(JobPl, columns=cat_list_job)
-    Jobs_encoded.info()
 
     cat_list_college=list(Colleg_c.select_dtypes('category'))
     Colleg_c_encoded = pd.get_dummies(Colleg_c, columns=cat_list_college)
-    Colleg_c_encoded.info()
+    
     return Jobs_encoded, Colleg_c_encoded
 
 def Normalize(Jobs_encoded, Colleg_c_encoded):

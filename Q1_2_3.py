@@ -16,6 +16,7 @@ import requests  # For HTTP requests to download data
 JobPl = pd.read_csv("Placement_Data_Full_Class.csv")
 College = pd.read_csv("cc_institution_details.csv")
 # %%
+#Look at the datasets, its missing data, and the types that each of the columns are.
 print(JobPl.head())
 print(JobPl.isna().sum())
 # %%
@@ -43,11 +44,12 @@ print(College.dtypes)
 
 # Drop unneeded variables
 # %%
-#Important, getting rid of empty columns or those that have many columns missing
+#Important, getting rid of empty columns or those that have many columns missing to reduce dimensionality.
 Colleg_c = College.dropna(axis=1)
 Colleg_c = Colleg_c.drop(["city","chronname","unitid","state","index","long_x","lat_y"], axis=1)
 
 # %%
+#Once again looking at the resulting output
 print(Colleg_c.head())
 # %%
 print(Colleg_c.info())
@@ -55,15 +57,20 @@ print(Colleg_c.info())
 
 # Correct variable type/class as needed
 #%%
+# Selecting our str columns in Job and setting each one to type of Category
 colsJob = ["gender", "workex", "degree_t", "status", "hsc_b", "hsc_s","ssc_b","specialisation"]
 JobPl[colsJob] = JobPl[colsJob].astype('category')
 
+#Since salary=0 corresponds with unemployment, for the sake of better predictions we will set the value to 0 if it was previously null.
 JobPl["salary"]=JobPl["salary"].fillna(0)
 
+# Selecting our str columns in Colleg_c and setting each one to type of Category
 colsCollege = ["basic", "control", "level"]
 Colleg_c[colsCollege] = Colleg_c[colsCollege].astype('category')
 
 # Collapse factor levels as needed 
+
+# Look at all the different columns and their value counts to check which columns need to be changed.
 #%%
 JobPl.status.value_counts()
 #%%
@@ -76,15 +83,17 @@ print(JobPl["ssc_b"].value_counts())
 print(JobPl["specialisation"].value_counts())
 
 #%%
-#Reduce to 2 options: private or public
+#Reduce to 2 options: private or public, setting anything that isn't public to private.
 Colleg_c.control = (Colleg_c.control.apply(lambda x: x if x == "Public"
                                else "Private")).astype('category')
 
 #%%
+#Check the results from the column control, the value counts show the new change
 Colleg_c.level.value_counts()
 
 # Apply one-hot encoding
 # %%
+#Selects all current categories and one-hot encodes them for both job and college into a new dataset, creating a new column for each possible value of these categorical columns.
 cat_list_job=list(JobPl.select_dtypes('category'))
 Jobs_encoded = pd.get_dummies(JobPl, columns=cat_list_job)
 Jobs_encoded.info()
@@ -93,12 +102,14 @@ cat_list_college=list(Colleg_c.select_dtypes('category'))
 Colleg_c_encoded = pd.get_dummies(Colleg_c, columns=cat_list_college)
 Colleg_c_encoded.info()
 #%%
+#Check resulting effects again
 print(Jobs_encoded.info())
 #%%
 print(Colleg_c_encoded.info())
 
 # Normalize the continuous variables
 #%%
+#Grabs all numeric columns and sets their range between 0 to 1 for both Jobs and College Datasets.
 numeric_cols_Job = list(Jobs_encoded.select_dtypes('number'))
 Jobs_encoded[numeric_cols_Job] = MinMaxScaler().fit_transform(Jobs_encoded[numeric_cols_Job])
 
@@ -106,6 +117,7 @@ numeric_cols_College = list(Colleg_c_encoded.select_dtypes('number'))
 Colleg_c_encoded[numeric_cols_College] = MinMaxScaler().fit_transform(Colleg_c_encoded[numeric_cols_College])
 
 #%%
+#Check resulting effects on Jobs_encoded and Colleg_c_encoded
 print(Jobs_encoded.info())
 #%%
 print(Colleg_c_encoded.info())
@@ -115,7 +127,7 @@ print(Colleg_c_encoded.info())
 
 # Calculate the prevalence of the target variable 
 # %%
-# Calculate the prevalence (percentage of high-quality cereals)
+# Calculate the prevalence of Employed people and of Public universities.
 prevalence_Jobs = np.sum(Jobs_encoded["status_Placed"]) / len(Jobs_encoded["status_Placed"])
 print(prevalence_Jobs)
 #%%
@@ -125,6 +137,7 @@ print(prevalence_College)
 print(f"Baseline/Prevalence(Jobs): {prevalence_Jobs:.2%}")
 print(f"Baseline/Prevalence(College): {prevalence_College:.2%}")
 # %%
+# Separate both data sets into train, test, and tune sets for both datasets, stratifying on university ownership type and employment status
 train_Jobs, test_Jobs = train_test_split(
     Jobs_encoded,
     train_size=55,
@@ -147,6 +160,7 @@ tune_College, test_College = train_test_split(
     stratify=test_College["control_Public"]
 )
 #%%
+#Look at the resulting columns to make sure that the data split correctly.
 print(train_Jobs["status_Placed"].value_counts())
 print(tune_Jobs["status_Placed"].value_counts())
 print(test_Jobs["status_Placed"].value_counts())
